@@ -1,0 +1,135 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+
+\section{Load necessary libraries}\label{load-necessary-libraries}
+
+library(readxl) library(tm) library(e1071) library(caret)
+
+\section{Load the dataset with a new variable name to avoid
+conflicts}\label{load-the-dataset-with-a-new-variable-name-to-avoid-conflicts}
+
+Spam \textless- read\_excel(``D:/bhaumik/PERSONAL/My Startups/Fraktur
+Tech Labs/3.Consignments to sell/Spam Filter using Naive Bayes R
+Language 19 November/Spam.xlsx'')
+
+\section{Ensure the column names are correctly assigned, just in case of
+extra
+whitespace}\label{ensure-the-column-names-are-correctly-assigned-just-in-case-of-extra-whitespace}
+
+colnames(Spam) \textless- c(``label'', ``text'') \# View the first few
+rows to confirm head(Spam)
+
+\section{Preprocess the text data}\label{preprocess-the-text-data}
+
+corpus \textless- VCorpus(VectorSource(Spam\$text))
+
+\section{Text transformation: Convert to lowercase, remove punctuation,
+numbers, and stop
+words}\label{text-transformation-convert-to-lowercase-remove-punctuation-numbers-and-stop-words}
+
+corpus \textless- tm\_map(corpus, content\_transformer(tolower)) corpus
+\textless- tm\_map(corpus, removePunctuation) corpus \textless-
+tm\_map(corpus, removeNumbers) corpus \textless- tm\_map(corpus,
+removeWords, stopwords(``en''))
+
+\section{Create a Document Term Matrix
+(DTM)}\label{create-a-document-term-matrix-dtm}
+
+dtm \textless- DocumentTermMatrix(corpus) dtm \textless-
+removeSparseTerms(dtm, 0.99)
+
+\section{Convert DTM to a data frame}\label{convert-dtm-to-a-data-frame}
+
+dtm\_data \textless- as.data.frame(as.matrix(dtm))
+dtm\_data\(label <- as.factor(Spam\)label)
+
+\section{Split data into training and testing
+sets}\label{split-data-into-training-and-testing-sets}
+
+set.seed(123) trainIndex \textless-
+createDataPartition(dtm\_data\$label, p = 0.7, list = FALSE) trainData
+\textless- dtm\_data{[}trainIndex, {]} testData \textless-
+dtm\_data{[}-trainIndex, {]}
+
+\section{Train the Naïve Bayes
+model}\label{train-the-nauxefve-bayes-model}
+
+model \textless- naiveBayes(label \textasciitilde{} ., data = trainData)
+
+\section{Predict on the test data}\label{predict-on-the-test-data}
+
+predictions \textless- predict(model, testData)
+
+\section{Evaluate the model}\label{evaluate-the-model}
+
+confusionMatrix(predictions, testData\$label)
+
+\end{document}

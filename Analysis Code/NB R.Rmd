@@ -1,0 +1,50 @@
+# Load necessary libraries
+library(readxl)
+library(tm)
+library(e1071)
+library(caret)
+
+# Load the dataset with a new variable name to avoid conflicts
+Spam <- read_excel("C:/Users/91987/Desktop/code/dataset/Spam.xlsx")
+
+# Ensure the column names are correctly assigned, just in case of extra whitespace
+colnames(Spam) <- c("label", "text")
+# View the first few rows to confirm
+head(Spam)
+
+# Preprocess the text data
+corpus <- VCorpus(VectorSource(Spam$text))
+
+# Text transformation: Convert to lowercase, remove punctuation, numbers, and stop words
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+
+# Create a Document Term Matrix (DTM)
+dtm <- DocumentTermMatrix(corpus)
+dtm <- removeSparseTerms(dtm, 0.99)
+
+# Convert DTM to a data frame
+dtm_data <- as.data.frame(as.matrix(dtm))
+dtm_data$label <- as.factor(Spam$label)
+
+# Split data into training and testing sets
+set.seed(123)
+trainIndex <- createDataPartition(dtm_data$label, p = 0.7, list = FALSE)
+trainData <- dtm_data[trainIndex, ]
+testData <- dtm_data[-trainIndex, ]
+
+# Train the Naïve Bayes model
+model <- naiveBayes(label ~ ., data = trainData)
+
+# Predict on the test data
+predictions <- predict(model, testData)
+
+# Evaluate the model
+confusionMatrix(predictions, testData$label)
+
+
+
+
+

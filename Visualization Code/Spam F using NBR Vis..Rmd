@@ -1,0 +1,89 @@
+# Load necessary libraries
+library(readxl)
+library(tm)
+library(e1071)
+library(caret)
+library(ggplot2)
+library(wordcloud)   # For word clouds
+library(RColorBrewer) # For colors in word clouds
+library(pheatmap)    # For heatmap visualization
+
+# Load dataset
+spam_data <- read_excel("C:/Users/91987/Desktop/code/dataset/Spam.xlsx")
+colnames(spam_data) <- c("label", "text")
+
+# Visualize the distribution of Spam vs. Ham messages
+ggplot(spam_data, aes(x = label)) +
+  geom_bar(fill = c("dodgerblue", "coral")) +
+  labs(title = "Distribution of Spam vs. Ham Messages", x = "Message Type", y = "Count") +
+  theme_minimal()
+  
+# Text preprocessing
+corpus <- VCorpus(VectorSource(spam_data$text))
+corpus <- tm_map(corpus, content_transformer(tolower))
+corpus <- tm_map(corpus, removePunctuation)
+corpus <- tm_map(corpus, removeNumbers)
+corpus <- tm_map(corpus, removeWords, stopwords("en"))
+
+# Document Term Matrix and data frame conversion
+dtm <- DocumentTermMatrix(corpus)
+dtm <- removeSparseTerms(dtm, 0.99)
+dtm_data <- as.data.frame(as.matrix(dtm))
+dtm_data$label <- as.factor(spam_data$label)
+
+# Create Word Clouds for Spam and Ham messages
+# Separate spam and ham messages
+spam_messages <- subset(spam_data, label == "spam")
+ham_messages <- subset(spam_data, label == "ham")
+
+# Spam Word Cloud
+spam_corpus <- VCorpus(VectorSource(spam_messages$text))
+spam_corpus <- tm_map(spam_corpus, content_transformer(tolower))
+spam_corpus <- tm_map(spam_corpus, removePunctuation)
+spam_corpus <- tm_map(spam_corpus, removeNumbers)
+spam_corpus <- tm_map(spam_corpus, removeWords, stopwords("en"))
+spam_dtm <- DocumentTermMatrix(spam_corpus)
+spam_matrix <- as.matrix(spam_dtm)
+spam_word_freq <- sort(rowSums(spam_matrix), decreasing = TRUE)
+wordcloud(names(spam_word_freq), spam_word_freq, max.words = 100, colors = brewer.pal(8, "Reds"),
+          main = "Word Cloud of Spam Messages")
+          
+# Ham Word Cloud
+ham_corpus <- VCorpus(VectorSource(ham_messages$text))
+ham_corpus <- tm_map(ham_corpus, content_transformer(tolower))
+ham_corpus <- tm_map(ham_corpus, removePunctuation)
+ham_corpus <- tm_map(ham_corpus, removeNumbers)
+ham_corpus <- tm_map(ham_corpus, removeWords, stopwords("en"))
+ham_dtm <- DocumentTermMatrix(ham_corpus)
+ham_matrix <- as.matrix(ham_dtm)
+ham_word_freq <- sort(rowSums(ham_matrix), decreasing = TRUE)
+wordcloud(names(ham_word_freq), ham_word_freq, max.words = 100, colors = brewer.pal(8, "Blues"),
+          main = "Word Cloud of Ham Messages")
+          
+# Split data into training and testing sets
+set.seed(123)
+trainIndex <- createDataPartition(dtm_data$label, p = 0.7, list = FALSE)
+trainData <- dtm_data[trainIndex, ]
+testData <- dtm_data[-trainIndex, ]
+
+# Train and predict with Naïve Bayes
+model <- naiveBayes(label ~ ., data = trainData)
+predictions <- predict(model, testData)
+
+# Evaluate model
+conf_matrix <- confusionMatrix(predictions, testData$label)
+
+# Confusion Matrix Heatmap
+conf_matrix_data <- as.data.frame(conf_matrix$table)
+names(conf_matrix_data) <- c("Prediction", "Reference", "Freq")
+
+# Plot heatmap
+pheatmap(as.matrix(table(testData$label, predictions)),
+         cluster_rows = FALSE, cluster_cols = FALSE,
+         display_numbers = TRUE, color = colorRampPalette(c("white", "red"))(100),
+         main = "Confusion Matrix Heatmap")
+
+
+
+
+  
